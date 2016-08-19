@@ -1,0 +1,91 @@
+#!/bin/bash
+
+CURRENT_IP_ADDRESS=""
+LAST_SUCCESS=`date +%s`
+LAST_REAL_SUCCESS=0
+
+function mailMsg {
+    local STATUS="$1"
+    local MSG="$2"
+
+    echo $MSG | mailx -r "$ESCALATE_FROM" -s "$ESCALATE_SUBJECT - $STATUS" -S ""smtp=${SMTP_SERVER}"" "$ESCALATE_TO"
+}
+
+function resetSuccess {
+    LAST_SUCCESS=$TIME_NOW
+}
+
+function updateSuccess {
+    LAST_SUCCESS=`date +%s`
+    LAST_REAL_SUCCESS=$LAST_SUCCESS
+}
+
+function checkLastSuccess {
+    local TIME_NOW=`date +%s`
+
+    TIME_ELAPSED=$(($TIME_NOW - $LAST_SUCCESS)) 
+
+    if [ $TIME_ELAPSED -gt $ESCALATE_AFTER ]; then
+        if [ $LAST_REAL_SUCCESS -eq 0 ]; then
+            ESCALATE_MSG="WARNING: Unable to check IP for ${HOST_NAME}.${DOMAIN_NAME} and/or update" 
+        else
+            ESCALATE_MSG="WARNING: Have not been able to check IP for ${HOST_NAME}.${DOMAIN_NAME} and/or update since: $(date -d @$LAST_REAL_SUCCESS)"
+        fi
+        logger -t $LOGGER_TAG $ESCALATE_MSG
+        mailMsg "Warning" "$ESCALATE_MSG"
+        resetSuccess
+    fi
+}
+
+function updateDNS {
+    local SERVER_NAME="$1"
+    local DOMAIN_NAME="$2"
+    local HOST_NAME="$3"
+    local IP_ADDRESS="$4"
+    local FQ_HOST="${HOST_NAME}.${DOMAIN_NAME}"
+
+    logger -t $LOGGER_TAG Updating to new address $IP_ADDRESS
+    
+    nsupdate -y ${KEY_NAME}:${KEY_SECRET} <<EOF 2>&1 | logger -t $LOGGER_TAG
+server $SERVER_NAME
+debug yes
+zone ${DOMAIN_NAME}.
+update delete ${FQ_HOST}. A
+update add ${FQ_HOST}. ${RECORD_TTL} A $IP_ADDRESS
+show
+send
+EOF
+    if [ ${PIPESTATUS[0]} -eq 0 ]; then
+        SUCCESS_MSG="IP address for ${FQ_HOST} has been updated to point to new dynamic IP address $IP_ADDRESS"
+
+        logger -t $LOGGER_TAG "$SUCCESS_MSG"
+        [ "$MAIL_ON_SUCCESS" == "true" ] && mailMsg "Success [${FQ_HOST} => $IP_ADDRESS]" "$SUCCESS_MSG"
+        updateSuccess
+    else
+        logger -t $LOGGER_TAG "Failed to update IP address for ${FQ_HOST} to $IP_ADDRESS!"
+    fi
+}
+
+while [ 1 ]; do
+    CHECKED_IP_ADDRESS=$(curl --connect-timeout $IP_URL_TIMEOUT $IP_URL 2>/dev/null | sed -ne "s/$IP_CHECK_REGEX/\1/p")
+
+    # Try again immediately if there was an issue connecting
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        checkLastSuccess
+        continue
+    fi
+
+    if [ "$CHECKED_IP_ADDRESS" ]; then
+        if [ "$CHECKED_IP_ADDRESS" != "$CURRENT_IP_ADDRESS" ]; then
+            CURRENT_IP_ADDRESS="$CHECKED_IP_ADDRESS"
+            updateDNS $SERVER_NAME $DOMAIN_NAME $HOST_NAME $CURRENT_IP_ADDRESS
+        else
+            updateSuccess
+        fi
+    fi 
+
+    checkLastSuccess    
+
+    sleep $INTERVAL 
+done
+
