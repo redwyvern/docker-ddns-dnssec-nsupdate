@@ -12,3 +12,7 @@ send e-mails.
 
 The daemon itself can be configured through the provided 'run.sh' script which you should use as a startup script to launch the container.
 The script contains various documented settings that allow you to configure the DDNS update daemon.
+
+The easiest way to debug is to exec a bash session inside the container and then look at /var/log/syslog.
+
+The script will output information to this log.
