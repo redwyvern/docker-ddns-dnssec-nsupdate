@@ -1,3 +1,5 @@
+[![](https://images.microbadger.com/badges/image/redwyvern/ddns-dnssec-nsupdate.svg)](https://microbadger.com/images/redwyvern/ddns-dnssec-nsupdate "Get your own image badge on microbadger.com")
+
 An image running a DDNS update daemon that will continually update the configured DNS server as the host's public IP changes.
 
 An update key (normally generated via dnssec-keygen) is used to securely update the configured DNS server. The daemon obtains the
