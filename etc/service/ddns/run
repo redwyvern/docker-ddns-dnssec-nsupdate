@@ -66,6 +66,9 @@ EOF
     fi
 }
 
+# Attempt to wait for SMTP server to start
+wait-for-it.sh ${SMTP_SERVER}
+
 while [ 1 ]; do
     CHECKED_IP_ADDRESS=$(curl --connect-timeout $IP_URL_TIMEOUT $IP_URL 2>/dev/null | sed -ne "s/$IP_CHECK_REGEX/\1/p")
 

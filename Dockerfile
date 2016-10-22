@@ -7,3 +7,4 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     rsyslog
 
 COPY ./etc /etc
+COPY ./usr /usr
