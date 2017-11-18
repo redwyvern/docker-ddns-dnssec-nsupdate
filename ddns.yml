@@ -1,0 +1,59 @@
+version: '3'
+services:
+  ddns:
+    image: docker.artifactory.weedon.org.au/redwyvern/ddns-dnssec-nsupdate
+    container_name: ddns
+    hostname: ddns-updater
+    dns: 192.168.1.50
+    networks:
+      - dev_nw
+    environment:
+        # The URL to use to return the IP (can be any kind of "what's my IP" like site)
+      - IP_URL=http://icanhazip.com/
+        # Regular expression to retrieve the IP from the website. This just grabs the first thing it sees that looks like an IP address and so it should work for most sites.
+      - IP_CHECK_REGEX=[^0-9]*\([[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\.[[:digit:]]\{1,3\}\).*
+        # The amount of time to wait when connecting to the website before retrying
+      - IP_URL_TIMEOUT=5
+        # How long to wait after checking the IP address
+      - INTERVAL=300
+        ######################## DNS Record Information #####################
+        # DNS server name
+      - SERVER_NAME=ns1.example.com
+        # The domain name of the record to update
+      - DOMAIN_NAME=mydomain.example.com
+        # The host name of the record to update
+      - HOST_NAME=home-pc
+        # The TTL to set for the record, this should normally at least be no more than a day (86400)
+      - RECORD_TTL=3600
+        #####################################################################
+        ########## The HMAC-MD5 key used to update the DNS server ###########
+        # This key can be generated via the command "dnssec-keygen -r /dev/urandom -a HMAC-MD5 -b 512 -n HOST my_key_name" 
+        # where 'my_key_name' is the name of the key (this is arbitrary however the name must also be used in the 'KEY_NAME' setting below).
+        # Note that only the "private" file that gets generated from this command is needed. You should retrieve the required information from this file. 
+        # This same information should then be used to set up the DNS server end.
+      - KEY_NAME=example-key
+      - KEY_SECRET=secret goes here
+        #####################################################################
+        ############# Logging and Escalation Information ####################
+        # Tag to use when logging to syslog
+      - LOGGER_TAG=ddns-script
+        # How long to wait before sending a warning e-mail when the IP address cannot be updated due to either the IP check website 
+        # being unreachable or due to the DNS update not working. Note that the warning e-mail will be resent every ESCALATE_AFTER seconds 
+        # and so a low value may lead to a lot of e-mail spam if the update is not successful for a long period of time.
+      - ESCALATE_AFTER=3600
+        # E-mail address of the recipient of the escalation
+      - ESCALATE_TO=myemail@example.com
+        # The from address of the escalation e-mail
+      - ESCALATE_FROM=admin@example.com
+        # The subject of the escalation e-mail (note that additional information gets suffixed to the subject)
+      - ESCALATE_SUBJECT=DDNS Script Notification
+        # The SMTP server to use (assumes basic SMTP, no TLS or authentication etc)
+      - SMTP_SERVER=smtp-server:25
+        # Whether to send an e-mail when the IP address is successfully updated.
+        # Note that the IP address is only actually updated when it changes.
+      - MAIL_ON_SUCCESS=true
+    restart: always
+
+networks:
+  dev_nw:
+
