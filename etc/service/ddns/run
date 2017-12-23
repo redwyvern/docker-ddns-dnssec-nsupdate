@@ -89,8 +89,8 @@ while [ 1 ]; do
 
     if [ "$CHECKED_IP_ADDRESS" ]; then
         if [ "$CHECKED_IP_ADDRESS" != "$CURRENT_IP_ADDRESS" ]; then
-            echo "Record ${HOST_NAME}.${DOMAIN_NAME} points to IP address '${CHECKED_IP_ADDRESS}' but should point to '${CURRENT_IP_ADDRESS}', attempting to update ..."
-            updateDNS $SERVER_NAME $DOMAIN_NAME $HOST_NAME $CURRENT_IP_ADDRESS
+            echo "Record ${HOST_NAME}.${DOMAIN_NAME} points to IP address '${CURRENT_IP_ADDRESS}' but should point to '${CHECKED_IP_ADDRESS}', attempting to update ..."
+            updateDNS $SERVER_NAME $DOMAIN_NAME $HOST_NAME $CHECKED_IP_ADDRESS
         else
             updateSuccess
         fi
