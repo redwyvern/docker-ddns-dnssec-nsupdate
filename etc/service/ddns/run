@@ -78,7 +78,7 @@ wait-for-it.sh ${SMTP_SERVER}
 echo "SMTP server is up, beginning to monitor DDNS record ${HOST_NAME}.${DOMAIN_NAME} ..."
 
 while [ 1 ]; do
-    CURRENT_IP_ADDRESS=$(dig +noall +answer +nocomments ${HOST_NAME}.${DOMAIN_NAME} | awk '{ print $5 }')
+    CURRENT_IP_ADDRESS=$(dig +noall +answer +nocomments ${HOST_NAME}.${DOMAIN_NAME} @${SERVER_NAME} | awk '{ print $5 }')
     CHECKED_IP_ADDRESS=$(curl --connect-timeout $IP_URL_TIMEOUT $IP_URL 2>/dev/null | sed -ne "s/$IP_CHECK_REGEX/\1/p")
 
     # Try again immediately if there was an issue connecting
