@@ -44,8 +44,6 @@ function updateDNS {
     local IP_ADDRESS="$4"
     local FQ_HOST="${HOST_NAME}.${DOMAIN_NAME}"
 
-    echo Updating to new address $IP_ADDRESS
-    
     nsupdate -y ${KEY_NAME}:${KEY_SECRET} <<EOF 2>&1 | logger -t $LOGGER_TAG
 server $SERVER_NAME
 debug yes
@@ -91,7 +89,7 @@ while [ 1 ]; do
     if [ "$CHECKED_IP_ADDRESS" ]; then
         if [ "$CHECKED_IP_ADDRESS" != "$CURRENT_IP_ADDRESS" ]; then
             CURRENT_IP_ADDRESS="$CHECKED_IP_ADDRESS"
-            echo "Record ${HOST_NAME}.${DOMAIN_NAME} points to the incorrect IP '{$CHECKED_IP_ADDRESS}'"
+            echo "Record ${HOST_NAME}.${DOMAIN_NAME} points to IP address '${CHECKED_IP_ADDRESS}' but should point to '${CURRENT_IP_ADDRESS}', attempting to update ..."
             updateDNS $SERVER_NAME $DOMAIN_NAME $HOST_NAME $CURRENT_IP_ADDRESS
         else
             updateSuccess
