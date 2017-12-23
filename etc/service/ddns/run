@@ -66,12 +66,18 @@ EOF
     fi
 }
 
+function finish {
+  echo "Shutting down and no longer monitoring DNS record ${HOST_NAME}.${DOMAIN_NAME} ..."
+}
+
+trap finish EXIT
+
 echo "Waiting for SMTP server '${SMTP_SERVER}' to start ..."
 
 # Attempt to wait for SMTP server to start
 wait-for-it.sh ${SMTP_SERVER}
 
-echo "SMTP server is up, beginning to monitor DDNS record: ${HOST_NAME}.${DOMAIN_NAME} ..."
+echo "SMTP server is up, beginning to monitor DDNS record ${HOST_NAME}.${DOMAIN_NAME} ..."
 
 while [ 1 ]; do
     CHECKED_IP_ADDRESS=$(curl --connect-timeout $IP_URL_TIMEOUT $IP_URL 2>/dev/null | sed -ne "s/$IP_CHECK_REGEX/\1/p")
