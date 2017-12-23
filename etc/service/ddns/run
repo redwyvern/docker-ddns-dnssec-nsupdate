@@ -31,7 +31,7 @@ function checkLastSuccess {
         else
             ESCALATE_MSG="WARNING: Have not been able to check IP for ${HOST_NAME}.${DOMAIN_NAME} and/or update since: $(date -d @$LAST_REAL_SUCCESS)"
         fi
-        logger -t $LOGGER_TAG $ESCALATE_MSG
+        echo $ESCALATE_MSG
         mailMsg "Warning" "$ESCALATE_MSG"
         resetSuccess
     fi
@@ -44,7 +44,7 @@ function updateDNS {
     local IP_ADDRESS="$4"
     local FQ_HOST="${HOST_NAME}.${DOMAIN_NAME}"
 
-    logger -t $LOGGER_TAG Updating to new address $IP_ADDRESS
+    echo Updating to new address $IP_ADDRESS
     
     nsupdate -y ${KEY_NAME}:${KEY_SECRET} <<EOF 2>&1 | logger -t $LOGGER_TAG
 server $SERVER_NAME
@@ -58,16 +58,20 @@ EOF
     if [ ${PIPESTATUS[0]} -eq 0 ]; then
         SUCCESS_MSG="IP address for ${FQ_HOST} has been updated to point to new dynamic IP address $IP_ADDRESS"
 
-        logger -t $LOGGER_TAG "$SUCCESS_MSG"
+        echo "$SUCCESS_MSG"
         [ "$MAIL_ON_SUCCESS" == "true" ] && mailMsg "Success [${FQ_HOST} => $IP_ADDRESS]" "$SUCCESS_MSG"
         updateSuccess
     else
-        logger -t $LOGGER_TAG "Failed to update IP address for ${FQ_HOST} to $IP_ADDRESS!"
+        echo "Failed to update IP address for ${FQ_HOST} to $IP_ADDRESS!"
     fi
 }
 
+echo "Waiting for SMTP server '${SMTP_SERVER}' to start ..."
+
 # Attempt to wait for SMTP server to start
 wait-for-it.sh ${SMTP_SERVER}
+
+echo "SMTP server is up, beginning to monitor DDNS record: ${HOST_NAME}.${DOMAIN_NAME} ..."
 
 while [ 1 ]; do
     CHECKED_IP_ADDRESS=$(curl --connect-timeout $IP_URL_TIMEOUT $IP_URL 2>/dev/null | sed -ne "s/$IP_CHECK_REGEX/\1/p")
